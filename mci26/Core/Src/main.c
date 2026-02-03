@@ -100,16 +100,18 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
+  char text[] = "Hello World\r\n";
 
+  HAL_UART_Transmit (&huart1, (uint8_t *)text, strlen(text), 5000);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    char text[] = "Hello World\r\n";
+    /* USER CODE END WHILE */
 
-    HAL_UART_Transmit (&huart1, (uint8_t *)text, strlen(text), 5000);
+    /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
 }
