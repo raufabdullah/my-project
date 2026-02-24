@@ -79,26 +79,19 @@ static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN 0 */
 void gyro_init(void) {
   uint8_t tx[2] = {CTRL_REG1, CTRL_REG1_VAL};
-  HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET);  // CS LOW
+  HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET);
   HAL_SPI_Transmit(&hspi1, tx, 2, HAL_MAX_DELAY);
-  HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_SET);    // CS HIGH
-}
-
-void gyro_set_ctrl_reg4(void) {
-  uint8_t tx[2] = {CTRL_REG4, CTRL_REG4_VAL};
-  HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET);  // CS LOW
-  HAL_SPI_Transmit(&hspi1, tx, 2, HAL_MAX_DELAY);
-  HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_SET);    // CS HIGH
+  HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_SET);
 }
 
 uint8_t gyro_read_register(uint8_t reg_addr) {
   uint8_t tx = reg_addr | SPI_READ;
   uint8_t rx = 0;
   
-  HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET);  // CS LOW
+  HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET);
   HAL_SPI_Transmit(&hspi1, &tx, 1, HAL_MAX_DELAY);
   HAL_SPI_Receive(&hspi1, &rx, 1, HAL_MAX_DELAY);
-  HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_SET);    // CS HIGH
+  HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_SET);
   
   return rx;
 }
@@ -161,9 +154,8 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
-  // Initialize gyroscope
   gyro_init();
-  HAL_Delay(100);  // Small delay after initialization
+  HAL_Delay(100);
   /* USER CODE END 2 */
 
   /* Infinite loop */
