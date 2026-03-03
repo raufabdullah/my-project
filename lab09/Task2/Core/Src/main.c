@@ -116,8 +116,6 @@ void LSM_Read(LSM_Data *data) {
     HAL_I2C_Mem_Read(&hi2c1, 0x19 << 1, 0x2D, 1, &high_byte, 1, HAL_MAX_DELAY);
     data->raw_z = (int16_t)((high_byte << 8) | low_byte);
 
-    LSM_Calibration(data);
-
     data->scaled_x = (data->raw_x * 3.9f / 1000.0f) - data->offset_x;
     data->scaled_y = (data->raw_y * 3.9f / 1000.0f) - data->offset_y;
     data->scaled_z = (data->raw_z * 3.9f / 1000.0f) - data->offset_z;
