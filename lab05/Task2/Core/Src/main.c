@@ -31,28 +31,23 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
-// Motor Driver Pin Definitions
-// Right Motor
 #define RIGHT_MOTOR_D8_PORT   GPIOB
 #define RIGHT_MOTOR_D8_PIN    GPIO_PIN_2
 #define RIGHT_MOTOR_D12_PORT  GPIOB
 #define RIGHT_MOTOR_D12_PIN   GPIO_PIN_1
 // D10 (PA6) is TIM3_CH1 for Right Motor PWM
 
-// Left Motor
 #define LEFT_MOTOR_D7_PORT    GPIOB
 #define LEFT_MOTOR_D7_PIN     GPIO_PIN_10
 #define LEFT_MOTOR_D6_PORT    GPIOB
 #define LEFT_MOTOR_D6_PIN     GPIO_PIN_11
 // D9 (PA4) is TIM3_CH2 for Left Motor PWM
 
-// Motor Direction Definitions
 #define MOTOR_FORWARD   0
 #define MOTOR_BACKWARD  1
 #define MOTOR_STOP      2
 
-// PWM Configuration: 10kHz frequency, 0-1000 duty cycle range
+// 10kHz frequency, 0-1000 duty cycle range
 #define PWM_PERIOD  999
 
 /* USER CODE END PD */
@@ -126,10 +121,8 @@ int main(void)
   MX_USB_PCD_Init();
   /* USER CODE BEGIN 2 */
 
-  // Start PWM on TIM3 Channel 1 (PA6 - D10 for Right Motor)
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-  
-  // Start PWM on TIM3 Channel 2 (PA4 - D9 for Left Motor)
+
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
 
   /* USER CODE END 2 */
@@ -142,70 +135,70 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
     
-    // ========== BOTH MOTORS FORWARD AT 50% SPEED (500) ==========
+    // Both Motors Forward
     // Right Motor Forward: D8=HIGH, D12=LOW, PWM=500
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_SET);    // D8 (PB2) = HIGH
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET);  // D12 (PB1) = LOW
-    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 500);     // D10 (PA6) PWM = 500 (50%)
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET);
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 500);
     
     // Left Motor Forward: D7=HIGH, D6=LOW, PWM=500
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);   // D7 (PB10) = HIGH
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET); // D6 (PB11) = LOW
-    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 500);     // D9 (PA4) PWM = 500 (50%)
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 500);
     
     HAL_Delay(3000);
     
-    // ========== STOP ALL MOTORS ==========
+    // Stop
     // Right Motor Stop: D8=HIGH, D12=HIGH, PWM=0
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_SET);    // D8 (PB2) = HIGH
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);    // D12 (PB1) = HIGH
-    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);       // D10 (PA6) PWM = 0
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);
     
     // Left Motor Stop: D7=HIGH, D6=HIGH, PWM=0
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);   // D7 (PB10) = HIGH
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);   // D6 (PB11) = HIGH
-    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);       // D9 (PA4) PWM = 0
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);
     
     HAL_Delay(2000);
     
-    // ========== BOTH MOTORS BACKWARD AT 50% SPEED (500) ==========
+    // Both motots backward
     // Right Motor Backward: D8=LOW, D12=HIGH, PWM=500
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_RESET);  // D8 (PB2) = LOW
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);    // D12 (PB1) = HIGH
-    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 500);     // D10 (PA6) PWM = 500 (50%)
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 500);
     
     // Left Motor Backward: D7=LOW, D6=HIGH, PWM=500
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET); // D7 (PB10) = LOW
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);   // D6 (PB11) = HIGH
-    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 500);     // D9 (PA4) PWM = 500 (50%)
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 500);
     
     HAL_Delay(3000);
     
-    // ========== STOP ALL MOTORS ==========
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_SET);    // D8 (PB2) = HIGH
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);    // D12 (PB1) = HIGH
-    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);       // D10 (PA6) PWM = 0
+    // Stop
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);
     
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);   // D7 (PB10) = HIGH
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);   // D6 (PB11) = HIGH
-    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);       // D9 (PA4) PWM = 0
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);
     
     HAL_Delay(2000);
     
-    // ========== ROTATE CLOCKWISE (Right Backward, Left Forward) ==========
+    // Rotate Clockwise
     // Right Motor Backward
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_RESET);  // D8 (PB2) = LOW
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);    // D12 (PB1) = HIGH
-    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 500);     // D10 (PA6) PWM = 500 (50%)
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 500);
     
     // Left Motor Forward
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);   // D7 (PB10) = HIGH
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET); // D6 (PB11) = LOW
-    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 500);     // D9 (PA4) PWM = 500 (50%)
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_RESET);
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 500);
     
     HAL_Delay(2000);
     
-    // ========== STOP ALL MOTORS ==========
+    // Stop
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_SET);    
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);    
     __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);       
@@ -216,20 +209,20 @@ int main(void)
     
     HAL_Delay(2000);
     
-    // ========== ROTATE ANTICLOCKWISE (Right Forward, Left Backward) ==========
+    // Rotate AntiClockwise
     // Right Motor Forward
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_SET);    // D8 (PB2) = HIGH
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET);  // D12 (PB1) = LOW
-    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 500);     // D10 (PA6) PWM = 500 (50%)
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET);
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 500);
     
     // Left Motor Backward
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET); // D7 (PB10) = LOW
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);   // D6 (PB11) = HIGH
-    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 500);     // D9 (PA4) PWM = 500 (50%)
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_11, GPIO_PIN_SET);
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 500);
     
     HAL_Delay(2000);
     
-    // ========== STOP ALL MOTORS ==========
+    // Stop
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2, GPIO_PIN_SET);    
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);    
     __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);       
