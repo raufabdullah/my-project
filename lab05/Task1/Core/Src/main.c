@@ -102,8 +102,7 @@ int main(void)
   MX_USB_PCD_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  
-  // Start PWM on TIM3 Channel 1 (PA6)
+
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 
   /* USER CODE END 2 */
@@ -113,7 +112,6 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-
     uint32_t arr_value = __HAL_TIM_GET_AUTORELOAD(&htim3);
     for (uint32_t duty = 0; duty <= arr_value; duty++) {
       __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, duty);
