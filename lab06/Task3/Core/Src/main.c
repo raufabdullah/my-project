@@ -23,7 +23,7 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include <string.h>
-
+#include <stdint.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -33,7 +33,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define SAMPLE_SIZE 10
+#define PPR 330.0f
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -44,6 +45,8 @@
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
 
+SPI_HandleTypeDef hspi1;
+
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 
@@ -52,62 +55,37 @@ UART_HandleTypeDef huart1;
 PCD_HandleTypeDef hpcd_USB_FS;
 
 /* USER CODE BEGIN PV */
-
-// Encoder pin definitions
-#define ENCODER_PIN GPIO_PIN_12
-#define ENCODER_GPIO_PORT GPIOB
-
-// Motor PWM pin definitions
-#define PWM_PIN GPIO_PIN_4
-#define PWM_GPIO_PORT GPIOA
-#define PWM_TIMER htim3
-#define PWM_CHANNEL TIM_CHANNEL_2
-
-// PPR (Pulses Per Revolution) for the motor
-#define PPR 330
-
-// Timer frequency (TIM2 runs at 48 MHz) 
-#define TIMER_FREQ 48000000  // 48 MHz
-
-// Variables for encoder pulse detection
-uint32_t pulse_ticks = 0;
-float frequency_hz = 0.0f;
-float rpm = 0.0f;
-uint8_t uart_buffer[100];
-
-// PWM variables
-uint32_t pwm_frequency = 1000;  // 1 kHz default
-uint8_t pwm_duty_cycle = 50;     // 50% default
-
+uint32_t captured_ticks = 0;
+float signal_frequency = 0.0;
+float motor_rpm = 0.0;
+char uart_buf[60];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
-static void MX_TIM2_Init(void);
+static void MX_SPI1_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USB_PCD_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
-
-// Function prototypes for encoder handling
-void wait_for_falling_edge(void);
-void measure_pulse_period(void);
-void calculate_rpm(void);
-void send_rpm_data(void);
-
-// Function prototypes for PWM control
-void set_pwm_duty_cycle(uint8_t duty_cycle);
-void set_pwm_frequency(uint32_t frequency);
-void start_pwm(void);
-void stop_pwm(void);
 
 /* USER CODE END PFP */
 
-/* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+#ifdef __GNUC__
+  #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+  #define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#endif
 
+PUTCHAR_PROTOTYPE
+{
+  HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+  return ch;
+}
 /* USER CODE END 0 */
 
 /**
@@ -140,46 +118,61 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_I2C1_Init();
-  MX_TIM2_Init();
+  MX_SPI1_Init();
   MX_TIM3_Init();
   MX_USART1_UART_Init();
   MX_USB_PCD_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-  
-  // Start TIM2 for timing measurements
-  HAL_TIM_Base_Start(&htim2);
-  
-  // Start PWM on PA4 (TIM3 CH2) with default settings
-  set_pwm_frequency(1000);  // 1 kHz
-  set_pwm_duty_cycle(50);    // 50% duty cycle
-  start_pwm();
-  
-  // Send initial message over UART
-  char init_msg[] = "Encoder RPM Measurement Started\r\n";
-  HAL_UART_Transmit(&huart1, (uint8_t*)init_msg, strlen(init_msg), 100);
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
 
-  /* USER CODE END 2 */
+  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 999);
+  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_2, 500);
+
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET);
+/* USER CODE END 2 */
+
+
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+      float sum = 0;
+
+    for (int i = 0; i < SAMPLE_SIZE; i++)
+    {
+        while (HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_0) == GPIO_PIN_RESET);
+        while (HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_0) == GPIO_PIN_SET);
+
+        __HAL_TIM_SET_COUNTER(&htim3, 0);
+        HAL_TIM_Base_Start(&htim3);
+
+        while (HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_0) == GPIO_PIN_RESET);
+        while (HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_0) == GPIO_PIN_SET);
+
+        HAL_TIM_Base_Stop(&htim3);
+
+        uint32_t ticks = __HAL_TIM_GET_COUNTER(&htim3);
+
+        if (ticks != 0)
+        {
+            sum += 1000000.0f / (float)ticks;
+        }
+    }
+
+    float avg_freq = sum / SAMPLE_SIZE;
+    float rpm = (60.0f * avg_freq) / PPR;
+
+    printf("Freq: %.2f Hz | RPM: %.2f\r\n", avg_freq, rpm);
+
+    HAL_Delay(10);
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    
-    // Measure the pulse period between two falling edges
-    measure_pulse_period();
-    
-    // Calculate frequency and RPM
-    calculate_rpm();
-    
-    // Send the RPM data over UART
-    send_rpm_data();
-    
-    // Add a small delay to avoid overwhelming the UART
-    HAL_Delay(500);
-    
   }
   /* USER CODE END 3 */
 }
@@ -221,7 +214,7 @@ void SystemClock_Config(void)
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
   {
-    Error_Handler();  
+    Error_Handler();
   }
   PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB|RCC_PERIPHCLK_USART1
                               |RCC_PERIPHCLK_I2C1;
@@ -250,7 +243,7 @@ static void MX_I2C1_Init(void)
 
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
-  hi2c1.Init.Timing = 0x00201D2B;
+  hi2c1.Init.Timing = 0x2000090E;
   hi2c1.Init.OwnAddress1 = 0;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -283,6 +276,46 @@ static void MX_I2C1_Init(void)
 }
 
 /**
+  * @brief SPI1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI1_Init(void)
+{
+
+  /* USER CODE BEGIN SPI1_Init 0 */
+
+  /* USER CODE END SPI1_Init 0 */
+
+  /* USER CODE BEGIN SPI1_Init 1 */
+
+  /* USER CODE END SPI1_Init 1 */
+  /* SPI1 parameter configuration*/
+  hspi1.Instance = SPI1;
+  hspi1.Init.Mode = SPI_MODE_MASTER;
+  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi1.Init.DataSize = SPI_DATASIZE_4BIT;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.NSS = SPI_NSS_SOFT;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
+  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi1.Init.CRCPolynomial = 7;
+  hspi1.Init.CRCLength = SPI_CRC_LENGTH_DATASIZE;
+  hspi1.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
+  if (HAL_SPI_Init(&hspi1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN SPI1_Init 2 */
+
+  /* USER CODE END SPI1_Init 2 */
+
+}
+
+/**
   * @brief TIM2 Initialization Function
   * @param None
   * @retval None
@@ -294,6 +327,7 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 0 */
 
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
   TIM_OC_InitTypeDef sConfigOC = {0};
 
@@ -301,12 +335,21 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 0;
+  htim2.Init.Prescaler = 9;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 4294967295;
+  htim2.Init.Period = 999;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_OC_Init(&htim2) != HAL_OK)
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
   {
     Error_Handler();
   }
@@ -316,17 +359,22 @@ static void MX_TIM2_Init(void)
   {
     Error_Handler();
   }
-  sConfigOC.OCMode = TIM_OCMODE_TIMING;
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
   sConfigOC.Pulse = 0;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_OC_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
   {
     Error_Handler();
   }
   /* USER CODE BEGIN TIM2_Init 2 */
 
   /* USER CODE END TIM2_Init 2 */
+  HAL_TIM_MspPostInit(&htim2);
 
 }
 
@@ -342,19 +390,24 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 0 */
 
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
-  TIM_OC_InitTypeDef sConfigOC = {0};
 
   /* USER CODE BEGIN TIM3_Init 1 */
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 0;
+  htim3.Init.Prescaler = 47;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim3.Init.Period = 65535;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
   {
     Error_Handler();
   }
@@ -364,22 +417,9 @@ static void MX_TIM3_Init(void)
   {
     Error_Handler();
   }
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
-  {
-    Error_Handler();
-  }
   /* USER CODE BEGIN TIM3_Init 2 */
 
   /* USER CODE END TIM3_Init 2 */
-  HAL_TIM_MspPostInit(&htim3);
 
 }
 
@@ -475,10 +515,7 @@ static void MX_GPIO_Init(void)
                           |LD6_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1|GPIO_PIN_2, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, GPIO_PIN_10|GPIO_PIN_11, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_1, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : DRDY_Pin MEMS_INT3_Pin MEMS_INT4_Pin MEMS_INT1_Pin
                            MEMS_INT2_Pin */
@@ -499,32 +536,23 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : SPI1_SCK_Pin SPI1_MISO_Pin */
-  GPIO_InitStruct.Pin = SPI1_SCK_Pin|SPI1_MISO_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PB1 PB2 */
-  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_2;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PB12 */
-  GPIO_InitStruct.Pin = GPIO_PIN_12;
+  /*Configure GPIO pin : B1_Pin */
+  GPIO_InitStruct.Pin = B1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PD10 PD11 */
-  GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_11;
+  /*Configure GPIO pins : PB0 PB1 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PD0 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
@@ -533,168 +561,6 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
-/**
-  * @brief  Wait for the encoder pin to become HIGH (rising edge detection)
-  * @retval None
-  */
-void wait_for_rising_edge(void)
-{
-  while (HAL_GPIO_ReadPin(ENCODER_GPIO_PORT, ENCODER_PIN) == GPIO_PIN_RESET)
-  {
-    // Wait for pin to go HIGH
-  }
-}
-
-/**
-  * @brief  Wait for the encoder pin to become LOW (falling edge detection)
-  * @retval None
-  */
-void wait_for_falling_edge(void)
-{
-  while (HAL_GPIO_ReadPin(ENCODER_GPIO_PORT, ENCODER_PIN) == GPIO_PIN_SET)
-  {
-    // Wait for pin to go LOW
-  }
-}
-
-/**
-  * @brief  Measure the period between two falling edges
-  * @retval None
-  */
-void measure_pulse_period(void)
-{
-  // Wait for the rising edge (transition from LOW to HIGH)
-  wait_for_rising_edge();
-  
-  // Start the timer (TIM2)
-  __HAL_TIM_SET_COUNTER(&htim2, 0);
-  HAL_TIM_Base_Start(&htim2);
-  
-  // Wait for the falling edge (transition from HIGH to LOW)
-  wait_for_falling_edge();
-  
-  // Stop the timer and get the elapsed ticks
-  HAL_TIM_Base_Stop(&htim2);
-  pulse_ticks = __HAL_TIM_GET_COUNTER(&htim2);
-}
-
-/**
-  * @brief  Calculate the frequency and RPM from the measured pulse period
-  * @retval None
-  */
-void calculate_rpm(void)
-{
-  if (pulse_ticks == 0)
-  {
-    frequency_hz = 0.0f;
-    rpm = 0.0f;
-    return;
-  }
-  
-  // Calculate frequency: Frequency (Hz) = Timer Frequency / Captured Ticks
-  frequency_hz = (float)TIMER_FREQ / (float)pulse_ticks;
-  
-  // Calculate RPM: RPM = (60 * frequency) / PPR
-  rpm = (60.0f * frequency_hz) / (float)PPR;
-}
-
-/**
-  * @brief  Send RPM data over UART
-  * @retval None
-  */
-void send_rpm_data(void)
-{
-  uint16_t len = 0;
-  
-  // Format the data for transmission
-  len = sprintf((char*)uart_buffer, 
-                "Frequency: %.2f Hz, RPM: %.2f\r\n", 
-                frequency_hz, rpm);
-  
-  // Send data via UART1
-  HAL_UART_Transmit(&huart1, uart_buffer, len, 100);
-}
-
-/**
-  * @brief  Start PWM output on PA4 (TIM3 CH2)
-  * @retval None
-  */
-void start_pwm(void)
-{
-  HAL_TIM_PWM_Start(&PWM_TIMER, PWM_CHANNEL);
-}
-
-/**
-  * @brief  Stop PWM output on PA4 (TIM3 CH2)
-  * @retval None
-  */
-void stop_pwm(void)
-{
-  HAL_TIM_PWM_Stop(&PWM_TIMER, PWM_CHANNEL);
-}
-
-/**
-  * @brief  Set PWM duty cycle (0-100%)
-  * @param  duty_cycle: Duty cycle percentage (0-100)
-  * @retval None
-  */
-void set_pwm_duty_cycle(uint8_t duty_cycle)
-{
-  if (duty_cycle > 100)
-    duty_cycle = 100;
-  
-  pwm_duty_cycle = duty_cycle;
-  
-  // Calculate pulse value based on duty cycle
-  uint32_t pulse = (PWM_TIMER.Init.Period * duty_cycle) / 100;
-  
-  // Update the PWM pulse value
-  __HAL_TIM_SET_COMPARE(&PWM_TIMER, PWM_CHANNEL, pulse);
-}
-
-/**
-  * @brief  Set PWM frequency
-  * @param  frequency: Frequency in Hz
-  * @retval None
-  */
-void set_pwm_frequency(uint32_t frequency)
-{
-  if (frequency == 0)
-    return;
-  
-  pwm_frequency = frequency;
-  
-  // TIM3 clock = 48 MHz (APB1 = 96 MHz / 2)
-  uint32_t tim_clk = 48000000;
-  
-  // Calculate prescaler and period
-  // Prescaler = 0, so counter frequency = 48 MHz
-  // Period = (tim_clk / frequency) - 1
-  uint32_t period = (tim_clk / frequency) - 1;
-  
-  // Limit period to 16-bit value (for TIM3)
-  if (period > 65535)
-    period = 65535;
-  
-  PWM_TIMER.Init.Period = period;
-  
-  // Reconfigure the timer
-  HAL_TIM_PWM_Init(&PWM_TIMER);
-  HAL_TIM_MspPostInit(&PWM_TIMER);
-  
-  // Re-configure PWM channel
-  TIM_OC_InitTypeDef sConfigOC = {0};
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = (period * pwm_duty_cycle) / 100;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  
-  HAL_TIM_PWM_ConfigChannel(&PWM_TIMER, &sConfigOC, PWM_CHANNEL);
-  
-  // Restart PWM
-  HAL_TIM_PWM_Start(&PWM_TIMER, PWM_CHANNEL);
-}
 
 /* USER CODE END 4 */
 
