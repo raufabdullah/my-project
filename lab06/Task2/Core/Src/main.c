@@ -56,7 +56,6 @@ uint32_t ic_val2 = 0;
 uint32_t difference = 0;
 uint32_t tim2_frequency = 72000000 / 72;
 float frequency = 0.0;
-uint32_t capture_count = 0;
 
 /* USER CODE END PV */
 
@@ -113,26 +112,16 @@ int main(void)
   MX_USB_PCD_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
-  
-  HAL_UART_Transmit(&huart1, (uint8_t*)"Frequency Measurement Started\r\n", 31, HAL_MAX_DELAY);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  uint32_t last_count = 0;
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    if (capture_count != last_count)
-    {
-      last_count = capture_count;
-      char debug_msg[50];
-      int len = sprintf(debug_msg, "Captures: %lu\r\n", capture_count);
-      HAL_UART_Transmit(&huart1, (uint8_t*)debug_msg, len, HAL_MAX_DELAY);
-    }
-    HAL_Delay(1000);
+    HAL_Delay(10);
   }
   /* USER CODE END 3 */
 }
@@ -442,8 +431,6 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
   if (htim->Instance == TIM2)
   {
-    capture_count++;
-    
     ic_val2 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
     
     if (ic_val2 > ic_val1)
@@ -458,18 +445,12 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
     if (difference > 0)
     {
       frequency = (float)tim2_frequency / (float)difference;
-    }
-    
-    ic_val1 = ic_val2;
-    
-    static uint32_t print_counter = 0;
-    if (print_counter++ >= 10)
-    {
       char buffer[50];
       int len = sprintf(buffer, "Frequency: %.2f Hz\r\n", frequency);
       HAL_UART_Transmit(&huart1, (uint8_t*)buffer, len, HAL_MAX_DELAY);
-      print_counter = 0;
     }
+    
+    ic_val1 = ic_val2;
   }
 }
 
