@@ -547,8 +547,8 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
                 diff = (0xFFFFFFFF - ic_val1) + ic_val2;
 
             if (diff != 0) {
-                frequency = 666666.67f / (float)diff; // Task 2 frequency logic [cite: 152]
-                motor_rpm = (60.0f * frequency) / PPR; // Task 4 RPM calculation [cite: 157]
+              frequency = 666666.67f / (float)diff;
+              motor_rpm = (60.0f * frequency) / PPR;
             }
 
             is_first = 0;
@@ -565,7 +565,6 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
   while (1)
   {
@@ -583,8 +582,6 @@ void Error_Handler(void)
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

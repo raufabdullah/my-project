@@ -140,7 +140,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-      float sum = 0;
+    float sum = 0;
 
     for (int i = 0; i < SAMPLE_SIZE; i++)
     {
@@ -163,10 +163,10 @@ int main(void)
         }
     }
 
-    float avg_freq = sum / SAMPLE_SIZE;
-    float rpm = (60.0f * avg_freq) / PPR;
+    float freq = sum / SAMPLE_SIZE;
+    float rpm = (60.0f * freq) / PPR;
 
-    printf("Freq: %.2f Hz | RPM: %.2f\r\n", avg_freq, rpm);
+    printf("Freq: %.2f Hz, RPM: %.2f\r\n", freq, rpm);
 
     HAL_Delay(10);
 
@@ -571,7 +571,6 @@ static void MX_GPIO_Init(void)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
   while (1)
   {
@@ -589,8 +588,6 @@ void Error_Handler(void)
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

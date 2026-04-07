@@ -31,7 +31,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define SAMPLE_SIZE  16   /* Number of period measurements to average */
+#define SAMPLE_SIZE  16
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -51,10 +51,10 @@ UART_HandleTypeDef huart1;
 PCD_HandleTypeDef hpcd_USB_FS;
 
 /* USER CODE BEGIN PV */
-volatile uint32_t capture_buf[SAMPLE_SIZE];  /* Stores measured period counts    */
-volatile uint8_t  capture_idx   = 0;         /* Current fill index               */
-volatile uint8_t  timer_started = 0;         /* 1 = timer is running             */
-volatile uint8_t  print_flag    = 0;         /* 1 = buffer full, ready to print  */
+volatile uint32_t capture_buf[SAMPLE_SIZE];
+volatile uint8_t  capture_idx   = 0;
+volatile uint8_t  timer_started = 0;
+volatile uint8_t  print_flag    = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -109,7 +109,6 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USB_PCD_Init();
   /* USER CODE BEGIN 2 */
-  /* Enable EXTI line 1 (PD1) interrupt */
   HAL_NVIC_SetPriority(EXTI1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI1_IRQn);
   /* USER CODE END 2 */
@@ -456,33 +455,25 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-/**
- * @brief  EXTI interrupt callback – measures the period between rising edges
- *         on PD1 by timestamping with TIM2.
- */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
   if (GPIO_Pin == GPIO_PIN_1)
   {
     if (!timer_started)
     {
-      /* ---- First interrupt: reset counter and start TIM2 ---- */
       htim2.Instance->CNT  = 0;
       htim2.Instance->CR1 |= TIM_CR1_CEN;
       timer_started = 1;
     }
     else
     {
-      /* ---- Subsequent interrupts: capture elapsed counts ---- */
       capture_buf[capture_idx++] = htim2.Instance->CNT;
-      htim2.Instance->CNT = 0;   /* Reset for the next period measurement */
+      htim2.Instance->CNT = 0;
 
       if (capture_idx >= SAMPLE_SIZE)
       {
-        /* Buffer full – stop timer and signal the main loop */
         htim2.Instance->CR1 &= ~TIM_CR1_CEN;
         print_flag    = 1;
-        /* Reset state so a new batch starts automatically */
         capture_idx   = 0;
         timer_started = 0;
       }
@@ -500,7 +491,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
   while (1)
   {

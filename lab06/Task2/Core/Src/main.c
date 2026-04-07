@@ -54,9 +54,9 @@ PCD_HandleTypeDef hpcd_USB_FS;
 uint32_t ic_val1 = 0;
 uint32_t ic_val2 = 0;
 uint32_t difference = 0;
-uint32_t tim2_frequency = 72000000 / 72;  // 1 MHz (72MHz PLL clock / 72 = 1MHz)
+uint32_t tim2_frequency = 72000000 / 72;
 float frequency = 0.0;
-uint32_t capture_count = 0;  // Count captures to verify interrupts are firing
+uint32_t capture_count = 0;
 
 /* USER CODE END PV */
 
@@ -112,10 +112,8 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USB_PCD_Init();
   /* USER CODE BEGIN 2 */
-  // Start TIM2 input capture on Channel 1 with interrupt
   HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
   
-  // Send startup message
   HAL_UART_Transmit(&huart1, (uint8_t*)"Frequency Measurement Started\r\n", 31, HAL_MAX_DELAY);
   /* USER CODE END 2 */
 
@@ -127,7 +125,6 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    // Check if captures are happening
     if (capture_count != last_count)
     {
       last_count = capture_count;
@@ -135,7 +132,7 @@ int main(void)
       int len = sprintf(debug_msg, "Captures: %lu\r\n", capture_count);
       HAL_UART_Transmit(&huart1, (uint8_t*)debug_msg, len, HAL_MAX_DELAY);
     }
-    HAL_Delay(1000);  // Print status every second
+    HAL_Delay(1000);
   }
   /* USER CODE END 3 */
 }
@@ -441,43 +438,30 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
-/**
-  * @brief  Input capture callback function for TIM2 Channel 1
-  * @param  htim pointer to TIM handle
-  * @retval None
-  */
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
   if (htim->Instance == TIM2)
   {
-    capture_count++;  // Increment counter to show interrupt is firing
+    capture_count++;
     
-    // Get the current captured value
     ic_val2 = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
     
     if (ic_val2 > ic_val1)
     {
-      // Calculate the difference between two consecutive rising edges
       difference = ic_val2 - ic_val1;
     }
     else
     {
-      // Handle counter overflow
       difference = (0xFFFFFFFF - ic_val1) + ic_val2;
     }
     
-    // Calculate frequency: freq = tim2_frequency / period
-    // period is in counts, so frequency = 1MHz / difference
     if (difference > 0)
     {
       frequency = (float)tim2_frequency / (float)difference;
     }
     
-    // Store current value for next comparison
     ic_val1 = ic_val2;
     
-    // Send the frequency result over UART (every 10 captures to avoid flooding)
     static uint32_t print_counter = 0;
     if (print_counter++ >= 10)
     {
@@ -498,7 +482,6 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
   while (1)
   {
@@ -516,8 +499,6 @@ void Error_Handler(void)
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
