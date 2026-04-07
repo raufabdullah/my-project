@@ -73,11 +73,7 @@ static void MX_TIM3_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-int __io_putchar(int ch)
-{
-    HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
-    return ch;
-}
+
 /* USER CODE END 0 */
 
 /**
@@ -131,7 +127,9 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
 {
-    printf("Frequency: %.2f Hz | RPM: %.2f\r\n", frequency, motor_rpm);
+    char buffer[64];
+    int len = snprintf(buffer, sizeof(buffer), "Frequency: %.2f Hz, RPM: %.2f\r\n", frequency, motor_rpm);
+    HAL_UART_Transmit(&huart1, (uint8_t *)buffer, (uint16_t)len, HAL_MAX_DELAY);
     HAL_Delay(500);
     /* USER CODE END WHILE */
 

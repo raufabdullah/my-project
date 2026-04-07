@@ -58,7 +58,7 @@ PCD_HandleTypeDef hpcd_USB_FS;
 uint32_t captured_ticks = 0;
 float signal_frequency = 0.0;
 float motor_rpm = 0.0;
-char uart_buf[60];
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -75,17 +75,7 @@ static void MX_TIM2_Init(void);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
-#ifdef __GNUC__
-  #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
-#else
-  #define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
-#endif
 
-PUTCHAR_PROTOTYPE
-{
-  HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
-  return ch;
-}
 /* USER CODE END 0 */
 
 /**
@@ -166,7 +156,9 @@ int main(void)
     float freq = sum / SAMPLE_SIZE;
     float rpm = (60.0f * freq) / PPR;
 
-    printf("Freq: %.2f Hz, RPM: %.2f\r\n", freq, rpm);
+    char buffer[100];
+    int len = snprintf(buffer, sizeof(buffer), "Frequency: %.2f Hz, RPM: %.2f\r\n", freq, rpm);
+    HAL_UART_Transmit(&huart1, (uint8_t *)buffer, (uint16_t)len, HAL_MAX_DELAY);
 
     HAL_Delay(10);
 
