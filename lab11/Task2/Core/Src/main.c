@@ -375,7 +375,7 @@ int main(void)
       float angle = shared_angle;
       float pid = shared_pid_output;
 
-      // Print: angle, pid_output (CSV for plotting)
+      // Print: angle, pid_output
       snprintf(msg, sizeof(msg), "%.2f,%.2f\r\n", angle, pid);
       UART_Print(msg);
     }
