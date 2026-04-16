@@ -194,8 +194,7 @@ void Accel_ReadXYZ(float *ax, float *ay, float *az) {
 
 // ==================== Motor Control ====================
 // Motor A (Right): PWM = TIM2_CH1 (PA15), DIR = PB0, PB1
-// Motor B (Left):  PWM = TIM2_CH2 (PA1),  DIR = PB2, PB3 not available
-//                  Using PD2, PD3 for Motor B direction (adjust to your wiring)
+// Motor B (Left):  PWM = TIM2_CH2 (PA1),  DIR = PB2, PB14
 //
 // For the Keyestudio shield with TB6612FNG:
 //   Positive PID output -> tilt forward  -> both motors CW
@@ -375,7 +374,7 @@ int main(void)
       float angle = shared_angle;
       float pid = shared_pid_output;
 
-      // Print: angle, pid_output
+      // Print: angle, pid_output (CSV for plotting)
       snprintf(msg, sizeof(msg), "%.2f,%.2f\r\n", angle, pid);
       UART_Print(msg);
     }
